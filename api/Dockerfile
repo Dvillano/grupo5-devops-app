@@ -4,7 +4,7 @@
 FROM node:22-alpine AS build
 WORKDIR /api
 
-COPY package*.json ./
+COPY package*.json ./api
 
 RUN npm install 
 
