@@ -4,9 +4,9 @@
 FROM node:22-alpine AS build
 WORKDIR /api
 
-COPY package.json package-lock.json ./
+COPY package*.json ./
 
-RUN npm ci 
+RUN npm install 
 
 COPY . . 
 
