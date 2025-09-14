@@ -4,11 +4,11 @@
 FROM node:22-alpine AS build
 WORKDIR /api
 
-COPY package*.json /api
+COPY ./api/package*.json /api/
 
 RUN npm install 
 
-COPY . . 
+COPY ./api /api 
 
 # --------
 # Stage 2: Run
