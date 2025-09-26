@@ -8,7 +8,7 @@ COPY ./api/package*.json /api/
 
 RUN npm install 
 
-COPY . . 
+COPY ./api /api 
 
 # --------
 # Stage 2: Run
@@ -16,7 +16,7 @@ COPY . .
 FROM node:22-alpine
 WORKDIR /api
 
-COPY --from=build . . 
+COPY --from=build /api /api
 
 EXPOSE 3000
 CMD ["node", "./src/index.js"]
