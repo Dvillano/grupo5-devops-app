@@ -53,7 +53,7 @@ app.get('/healthz', async (req, res) => {
 
 app.get("/tasks", async (req, res, next) => {
   try {
-    const result = await pool.query("SELECT * FROM tasks ORDER BY id asc");
+    const result = await pool.query("SELECT * FROM app.tasks ORDER BY id asc");
     res.json({ tasks: result.rows });
   } catch (error) {
     console.error("Error fetching tasks:", error);
@@ -71,7 +71,7 @@ app.get("/tasks/:id", async (req, res, next) => {
   }
 
   try {
-    const result = await pool.query("SELECT * FROM tasks WHERE id = $1", [id]);
+    const result = await pool.query("SELECT * FROM app.tasks WHERE id = $1", [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Task not found" });
@@ -102,7 +102,7 @@ app.post("/tasks", async (req, res, next) => {
 
   try {
     const sql =
-      "INSERT INTO public.tasks (title, description, done) VALUES ($1, $2, $3) RETURNING id, title, description, done";
+      "INSERT INTO app.tasks (title, description, done) VALUES ($1, $2, $3) RETURNING id, title, description, done";
     const result = await pool.query(sql, [title, description || null, done]);
     const task = result.rows[0];
     return res.status(201).json({ task });
@@ -131,7 +131,7 @@ app.put("/tasks/:id", async (req, res, next) => {
 
   try {
     const sql =
-      "UPDATE public.tasks SET title = COALESCE($1, title), description = COALESCE($2, description), done = COALESCE($3, done) WHERE id = $4 RETURNING id, title, description, done";
+      "UPDATE app.tasks SET title = COALESCE($1, title), description = COALESCE($2, description), done = COALESCE($3, done) WHERE id = $4 RETURNING id, title, description, done";
     const values = [
       title ?? null,
       description ?? null,
@@ -161,7 +161,7 @@ app.delete("/tasks/:id", async (req, res, next) => {
   }
 
   try {
-    const sql = "DELETE FROM public.tasks WHERE id = $1 RETURNING id, title, description, done";
+    const sql = "DELETE FROM app.tasks WHERE id = $1 RETURNING id, title, description, done";
     const result = await pool.query(sql, [id]);
 
     if (result.rows.length === 0) {
