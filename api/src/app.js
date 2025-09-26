@@ -2,7 +2,7 @@ const express = require("express");
 const pool = require("./db");
 const app = express();
 const morgan = require('morgan')
-
+const cors = require('cors')
 
 // Middlewares
 app.use(express.json());
@@ -11,6 +11,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Request-Id', req.id);
   next();
 });
+app.use(cors());
 
 // Logging
 morgan.token('id', req => req.id);
