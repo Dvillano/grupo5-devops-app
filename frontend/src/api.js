@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000"
+const API_BASE = "https://grupo5-devops-app.onrender.com";
 
 export async function getTasks() {
   const res = await fetch(`${API_BASE}/tasks`);
