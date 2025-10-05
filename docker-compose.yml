@@ -1,10 +1,12 @@
 services:
+
+  # Backend
   api:
-    build:
-      context: .
-      dockerfile: ./api/Dockerfile
+    image: dvillano/grupo5-api:latest
     container_name: grupo5-api
     environment:
       - DATABASE_URL=${DATABASE_URL}
     ports:
       - "3000:3000"
+
+  # Frontend
