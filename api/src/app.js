@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 import express, { json } from "express";
-import { query } from "./db";
+import { query } from "./db.js";
 const app = express();
 import morgan, { token } from 'morgan';
 import cors from 'cors';
