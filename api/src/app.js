@@ -2,8 +2,21 @@ import express from 'express';
 import pool from './db.js';
 import morgan from 'morgan';
 import cors from 'cors';
+import * as Sentry from "@sentry/node";
+
 
 const app = express();
+
+// Sentry configuration
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  sendDefaultPii: true,
+});
+
+// app.use(Sentry.Handlers.requestHandler());
+// app.use(Sentry.Handlers.tracingHandler());
+Sentry.setupExpressErrorHandler(app);
+
 
 // Middlewares
 app.use(express.json());
@@ -188,5 +201,8 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: "Internal Server Error" });
 });
+
+
+
 
 export default app;
