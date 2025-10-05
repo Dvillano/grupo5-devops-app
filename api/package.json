@@ -1,6 +1,7 @@
 {
   "name": "grupo5-devops-api",
   "version": "1.0.0",
+  "type": "module",
   "description": "Express API",
   "main": "src/index.js",
   "scripts": {

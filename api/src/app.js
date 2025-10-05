@@ -1,8 +1,9 @@
-const express = require("express");
-const pool = require("./db");
+import express from 'express';
+import pool from './db.js';
+import morgan from 'morgan';
+import cors from 'cors';
+
 const app = express();
-const morgan = require('morgan')
-const cors = require('cors')
 
 // Middlewares
 app.use(express.json());
@@ -188,4 +189,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal Server Error" });
 });
 
-module.exports = app;
+export default app;
