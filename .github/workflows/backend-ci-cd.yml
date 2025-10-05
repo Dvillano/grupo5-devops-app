@@ -1,7 +1,7 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
-name: Node.js CI
+name: Backend CI/CD
 
 on:
   push:
@@ -11,21 +11,44 @@ on:
 
 jobs:
   build:
-
+    name: Build, Lint & Deploy API
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
+      # Clone repo
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+      # Configure Node V22
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 22
         cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+
+    # Install backend dependencies
+    - name: Install dependencies
+      working-directory: api
+      run: npm ci
+
+    # Run Linter
+    - name: Run linter
+      working-directory: api
+      run: npm run lint
+
+    # Login Docker Hub
+    - name: Docker Login
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USER }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # Build and Push Backend Docker Image
+    - name: Build and Push Backend Docker Image
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USER }}/grupo5-api:latest ./api
+        docker push ${{ secrets.DOCKERHUB_USER }}/grupo5-api:latest
+
+    # Deploy to Render
+    - name: Trigger Render Deploy
+      run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_API }}

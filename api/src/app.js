@@ -1,11 +1,12 @@
-const express = require("express");
-const pool = require("./db");
+/* eslint-disable no-undef */
+import express, { json } from "express";
+import { query } from "./db";
 const app = express();
-const morgan = require('morgan')
-const cors = require('cors')
+import morgan, { token } from 'morgan';
+import cors from 'cors';
 
 // Middlewares
-app.use(express.json());
+app.use(json());
 app.use((req, res, next) => {
   req.id = req.headers['x-request-id'] || Math.random().toString(36).slice(2, 9);
   res.setHeader('X-Request-Id', req.id);
@@ -14,8 +15,8 @@ app.use((req, res, next) => {
 app.use(cors());
 
 // Logging
-morgan.token('id', req => req.id);
-morgan.token('body', req => {
+token('id', req => req.id);
+token('body', req => {
   try { return JSON.stringify(req.body || {}); } catch { return '-'; }
 });
 
@@ -30,7 +31,7 @@ const loggerFormat = (tokens, req, res) => JSON.stringify({
 app.use(morgan(loggerFormat));
 
 // Health
-app.get('/healthz', async (req, res) => {
+app.get('/healthz', async (_req, res) => {
   const result = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -40,7 +41,7 @@ app.get('/healthz', async (req, res) => {
 
   try {
     const dbStart = Date.now();
-    await pool.query('SELECT 1');
+    await query('SELECT 1');
     result.db.ok = true;
     result.db.latency_ms = Date.now() - dbStart;
     return res.status(200).json(result);
@@ -52,9 +53,9 @@ app.get('/healthz', async (req, res) => {
 
 });
 
-app.get("/tasks", async (req, res, next) => {
+app.get("/tasks", async (_req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM app.tasks ORDER BY id asc");
+    const result = await query("SELECT * FROM app.tasks ORDER BY id asc");
     res.json({ tasks: result.rows });
   } catch (error) {
     console.error("Error fetching tasks:", error);
@@ -64,7 +65,7 @@ app.get("/tasks", async (req, res, next) => {
   }
 });
 
-app.get("/tasks/:id", async (req, res, next) => {
+app.get("/tasks/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
 
   if (Number.isNaN(id)) {
@@ -72,7 +73,7 @@ app.get("/tasks/:id", async (req, res, next) => {
   }
 
   try {
-    const result = await pool.query("SELECT * FROM app.tasks WHERE id = $1", [id]);
+    const result = await query("SELECT * FROM app.tasks WHERE id = $1", [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Task not found" });
@@ -87,7 +88,7 @@ app.get("/tasks/:id", async (req, res, next) => {
   }
 });
 
-app.post("/tasks", async (req, res, next) => {
+app.post("/tasks", async (req, res) => {
   const { title, description } = req.body;
   let { done } = req.body;
 
@@ -104,7 +105,7 @@ app.post("/tasks", async (req, res, next) => {
   try {
     const sql =
       "INSERT INTO app.tasks (title, description, done) VALUES ($1, $2, $3) RETURNING id, title, description, done";
-    const result = await pool.query(sql, [title, description || null, done]);
+    const result = await query(sql, [title, description || null, done]);
     const task = result.rows[0];
     return res.status(201).json({ task });
   } catch (error) {
@@ -115,7 +116,7 @@ app.post("/tasks", async (req, res, next) => {
   }
 });
 
-app.put("/tasks/:id", async (req, res, next) => {
+app.put("/tasks/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid id" });
 
@@ -140,7 +141,7 @@ app.put("/tasks/:id", async (req, res, next) => {
       id,
     ];
 
-    const result = await pool.query(sql, values);
+    const result = await query(sql, values);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Task not found" });
     }
@@ -154,7 +155,7 @@ app.put("/tasks/:id", async (req, res, next) => {
   }
 });
 
-app.delete("/tasks/:id", async (req, res, next) => {
+app.delete("/tasks/:id", async (req, res) => {
   const id = parseInt(req.params.id, 10);
 
   if (Number.isNaN(id)) {
@@ -163,7 +164,7 @@ app.delete("/tasks/:id", async (req, res, next) => {
 
   try {
     const sql = "DELETE FROM app.tasks WHERE id = $1 RETURNING id, title, description, done";
-    const result = await pool.query(sql, [id]);
+    const result = await query(sql, [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Task not found" });
@@ -178,14 +179,14 @@ app.delete("/tasks/:id", async (req, res, next) => {
 });
 
 // 404 handler
-app.use((req, res, next) => {
+app.use((_req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
 
 // Error handler
-app.use((err, req, res, next) => {
+app.use((err, _req, res) => {
   console.error(err);
   res.status(500).json({ error: "Internal Server Error" });
 });
 
-module.exports = app;
+export default app;

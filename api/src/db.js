@@ -1,7 +1,9 @@
-const { Pool } = require('pg');
+import { Pool } from 'pg';
+// eslint-disable-next-line no-undef
 require('dotenv').config();
 
 const pool = new Pool({
+  // eslint-disable-next-line no-undef
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false } 
 });
@@ -21,4 +23,4 @@ pool.connect()
   })
   .catch(err => console.error('❌ Could not connect to Postgres', err.stack));
 
-module.exports = pool;
+export default pool;
