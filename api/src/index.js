@@ -1,8 +1,7 @@
-import { listen } from './app.js'
+const app = require('./app')
 
-// eslint-disable-next-line no-undef
 const PORT = process.env.PORT || 3000
 
-listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`API listening on port ${PORT}`)
 })
