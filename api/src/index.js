@@ -1,4 +1,4 @@
-import { listen } from './app'
+import { listen } from './app.js'
 
 // eslint-disable-next-line no-undef
 const PORT = process.env.PORT || 3000
