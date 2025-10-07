@@ -1,5 +1,5 @@
+version: "3.9"
 services:
-
   # Backend
   api:
     image: dvillano/grupo5-api:latest
@@ -10,3 +10,10 @@ services:
       - "3000:3000"
 
   # Frontend
+  frontend:
+    image: camilaszesko/grupo5-frontend:latest
+    container_name: grupo5-frontend
+    ports:
+      - "3001:80"   # externo:interno
+    depends_on:
+      - api
