@@ -1,69 +1,75 @@
-import express from 'express';
-import pool from './db.js';
-import morgan from 'morgan';
-import cors from 'cors';
+import express from "express";
+import pool from "./db.js";
+import morgan from "morgan";
+import cors from "cors";
 import * as Sentry from "@sentry/node";
-
 
 const app = express();
 
-// Sentry configuration
+// Sentry config
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   sendDefaultPii: true,
+  environment: process.env.RENDER ? "production" : "local"
 });
-
-// app.use(Sentry.Handlers.requestHandler());
-// app.use(Sentry.Handlers.tracingHandler());
-Sentry.setupExpressErrorHandler(app);
-
 
 // Middlewares
 app.use(express.json());
 app.use((req, res, next) => {
-  req.id = req.headers['x-request-id'] || Math.random().toString(36).slice(2, 9);
-  res.setHeader('X-Request-Id', req.id);
+  req.id =
+    req.headers["x-request-id"] || Math.random().toString(36).slice(2, 9);
+  res.setHeader("X-Request-Id", req.id);
   next();
 });
 app.use(cors());
 
 // Logging
-morgan.token('id', req => req.id);
-morgan.token('body', req => {
-  try { return JSON.stringify(req.body || {}); } catch { return '-'; }
+morgan.token("id", (req) => req.id);
+morgan.token("body", (req) => {
+  try {
+    return JSON.stringify(req.body || {});
+  } catch {
+    return "-";
+  }
 });
 
-const loggerFormat = (tokens, req, res) => JSON.stringify({
-  id: req.id,
-  method: tokens.method(req, res),
-  url: tokens.url(req, res),
-  status: tokens.status(req, res),
-  response_time: tokens['response-time'](req, res),
-  body: process.env.NODE_ENV === 'production' ? '-' : req.body
-});
+const loggerFormat = (tokens, req, res) =>
+  JSON.stringify({
+    id: req.id,
+    method: tokens.method(req, res),
+    url: tokens.url(req, res),
+    status: tokens.status(req, res),
+    response_time: tokens["response-time"](req, res),
+    body: process.env.NODE_ENV === "production" ? "-" : req.body,
+  });
 app.use(morgan(loggerFormat));
 
 // Health
-app.get('/healthz', async (req, res) => {
+app.get("/healthz", async (req, res) => {
   const result = {
-    status: 'ok',
+    status: "ok",
     timestamp: new Date().toISOString(),
     uptime_seconds: Math.floor(process.uptime()),
-    db: { ok: false, latency_ms: null }
+    db: { ok: false, latency_ms: null },
   };
 
   try {
     const dbStart = Date.now();
-    await pool.query('SELECT 1');
+    await pool.query("SELECT 1");
     result.db.ok = true;
     result.db.latency_ms = Date.now() - dbStart;
     return res.status(200).json(result);
   } catch (err) {
     console.error("Health check failed:", err);
-    result.status = 'error';
+    result.status = "error";
     return res.status(500).json(result);
   }
+});
 
+// Ruta de prueba que realmente genera un error
+app.get("/error", (req, res, next) => {
+  // cualquier throw/next(err) va a Sentry
+  next(new Error("Error from /error on Render"));
 });
 
 app.get("/tasks", async (req, res, next) => {
@@ -86,7 +92,9 @@ app.get("/tasks/:id", async (req, res, next) => {
   }
 
   try {
-    const result = await pool.query("SELECT * FROM app.tasks WHERE id = $1", [id]);
+    const result = await pool.query("SELECT * FROM app.tasks WHERE id = $1", [
+      id,
+    ]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Task not found" });
@@ -137,11 +145,9 @@ app.put("/tasks/:id", async (req, res, next) => {
   const done = req.body.done;
 
   if (title === undefined && description === undefined && done === undefined) {
-    return res
-      .status(400)
-      .json({
-        error: "At least one field (title, description, done) is required",
-      });
+    return res.status(400).json({
+      error: "At least one field (title, description, done) is required",
+    });
   }
 
   try {
@@ -176,7 +182,8 @@ app.delete("/tasks/:id", async (req, res, next) => {
   }
 
   try {
-    const sql = "DELETE FROM app.tasks WHERE id = $1 RETURNING id, title, description, done";
+    const sql =
+      "DELETE FROM app.tasks WHERE id = $1 RETURNING id, title, description, done";
     const result = await pool.query(sql, [id]);
 
     if (result.rows.length === 0) {
@@ -186,10 +193,13 @@ app.delete("/tasks/:id", async (req, res, next) => {
     return res.status(200).json({ task: result.rows[0] });
   } catch (error) {
     console.error("Error deleting task:", error);
-    return res.status(500).json({ error: "Failed to delete task", details: error.message });
-
+    return res
+      .status(500)
+      .json({ error: "Failed to delete task", details: error.message });
   }
 });
+
+Sentry.setupExpressErrorHandler(app);
 
 // 404 handler
 app.use((req, res, next) => {
@@ -201,8 +211,5 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: "Internal Server Error" });
 });
-
-
-
 
 export default app;
