@@ -10,7 +10,7 @@ const app = express();
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   sendDefaultPii: true,
-  environment: process.env.RENDER ? "production" : "local"
+  environment: process.env.RENDER ? "production" : "local",
 });
 
 // Middlewares
@@ -66,9 +66,8 @@ app.get("/healthz", async (req, res) => {
   }
 });
 
-// Ruta de prueba que realmente genera un error
-app.get("/error", (req, res, next) => {
-  // cualquier throw/next(err) va a Sentry
+// Test endpoint for Sentry
+app.get("/error", async (req, res, next) => {
   next(new Error("Error from /error on Render"));
 });
 
@@ -77,10 +76,7 @@ app.get("/tasks", async (req, res, next) => {
     const result = await pool.query("SELECT * FROM app.tasks ORDER BY id asc");
     res.json({ tasks: result.rows });
   } catch (error) {
-    console.error("Error fetching tasks:", error);
-    return res
-      .status(500)
-      .json({ error: "Failed to fetch tasks", details: error.message });
+    next(error);
   }
 });
 
@@ -88,7 +84,9 @@ app.get("/tasks/:id", async (req, res, next) => {
   const id = parseInt(req.params.id, 10);
 
   if (Number.isNaN(id)) {
-    return res.status(400).json({ error: "Invalid id" });
+    const err = new Error("Invalid id");
+    err.status = 400;
+    throw err;
   }
 
   try {
@@ -97,15 +95,14 @@ app.get("/tasks/:id", async (req, res, next) => {
     ]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Task not found" });
+      const err = new Error("Task not found");
+      err.status = 404;
+      throw err;
     }
 
     return res.status(200).json({ task: result.rows[0] });
   } catch (error) {
-    console.error("Error fetching tasks:", error);
-    return res
-      .status(500)
-      .json({ error: "Failed to fetch tasks", details: error.message });
+    next(error);
   }
 });
 
@@ -114,40 +111,44 @@ app.post("/tasks", async (req, res, next) => {
   let { done } = req.body;
 
   if (!title || typeof title !== "string") {
-    return res
-      .status(400)
-      .json({ error: "Title is required and must be a string" });
+    const err = new Error("Title is required and must be a string");
+    err.status = 400;
+    throw err;
   }
   if (done === undefined) done = false;
   if (typeof done !== "boolean") {
-    return res.status(400).json({ error: "Done must be a boolean" });
+    const err = new Error("Done must be a boolean");
+    err.status = 400;
+    throw err;
   }
 
   try {
     const sql =
       "INSERT INTO app.tasks (title, description, done) VALUES ($1, $2, $3) RETURNING id, title, description, done";
     const result = await pool.query(sql, [title, description || null, done]);
-    const task = result.rows[0];
-    return res.status(201).json({ task });
+    res.status(201).json({ task: result.rows[0] });
   } catch (error) {
-    console.error("Error creating task:", error);
-    return res
-      .status(500)
-      .json({ error: "Failed to create task", details: error.message });
+    next(error);
   }
 });
 
 app.put("/tasks/:id", async (req, res, next) => {
   const id = parseInt(req.params.id, 10);
-  if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  if (Number.isNaN(id)) {
+    const err = new Error("Invalid id");
+    err.status = 400;
+    throw err;
+  }
 
   const { title, description } = req.body;
   const done = req.body.done;
 
   if (title === undefined && description === undefined && done === undefined) {
-    return res.status(400).json({
-      error: "At least one field (title, description, done) is required",
-    });
+    const err = new Error(
+      "At least one field (title, description, done) is required"
+    );
+    err.status = 400;
+    throw err;
   }
 
   try {
@@ -162,15 +163,14 @@ app.put("/tasks/:id", async (req, res, next) => {
 
     const result = await pool.query(sql, values);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Task not found" });
+      const err = new Error("Task not found");
+      err.status = 404;
+      throw err;
     }
 
-    return res.status(200).json({ task: result.rows[0] });
+    res.json({ task: result.rows[0] });
   } catch (error) {
-    console.error("Error updating task:", error);
-    return res
-      .status(500)
-      .json({ error: "Failed to update task", details: error.message });
+    next(error);
   }
 });
 
@@ -178,7 +178,9 @@ app.delete("/tasks/:id", async (req, res, next) => {
   const id = parseInt(req.params.id, 10);
 
   if (Number.isNaN(id)) {
-    return res.status(400).json({ error: "Invalid id" });
+    const err = new Error("Invalid id");
+    err.status = 400;
+    throw err;
   }
 
   try {
@@ -186,20 +188,25 @@ app.delete("/tasks/:id", async (req, res, next) => {
       "DELETE FROM app.tasks WHERE id = $1 RETURNING id, title, description, done";
     const result = await pool.query(sql, [id]);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Task not found" });
+    if (!result.rows.length) {
+      const err = new Error("Task not found");
+      err.status = 404;
+      throw err;
     }
 
-    return res.status(200).json({ task: result.rows[0] });
+    res.json({ task: result.rows[0] });
   } catch (error) {
-    console.error("Error deleting task:", error);
-    return res
-      .status(500)
-      .json({ error: "Failed to delete task", details: error.message });
+    next(error);
   }
 });
 
-Sentry.setupExpressErrorHandler(app);
+app.use(
+  Sentry.expressErrorHandler({
+    shouldHandleError(error) {
+      return !error.status || Number(error.status) >= 400;
+    },
+  })
+);
 
 // 404 handler
 app.use((req, res, next) => {
@@ -209,7 +216,11 @@ app.use((req, res, next) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: "Internal Server Error" });
+  const status = err.status || 500;
+  res.status(status).json({
+    error: status === 500 ? "Internal Server Error" : err.message,
+    request_id: req.id,
+  });
 });
 
 export default app;
