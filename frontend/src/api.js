@@ -1,4 +1,4 @@
-const API_BASE = "https://grupo5-devops-app.onrender.com";
+const API_BASE = "https://grupo5-devops-backend.onrender.com";
 
 export async function getTasks() {
   const res = await fetch(`${API_BASE}/tasks`);
