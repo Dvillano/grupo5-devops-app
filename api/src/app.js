@@ -11,6 +11,7 @@ Sentry.init({
   dsn: process.env.SENTRY_DSN,
   sendDefaultPii: true,
   environment: process.env.RENDER ? "production" : "local",
+  tracesSampleRate: 1.0
 });
 
 // Middlewares
