@@ -6,4 +6,4 @@ export default {
   testMatch: ["**/*.test.js"],
   verbose: true,
   transform: {},
-  setupFiles: [resolve('./setup-env.js')], 
+  setupFiles: [resolve('./setup-env.js')], }
