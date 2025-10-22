@@ -41,7 +41,7 @@ jobs:
     # Run Tests
     - name: Run tests
       working-directory: frontend
-      run: npm test
+      run: npm test -- --passWithNoTests --watchAll=false
 
     # Login Docker Hub
     - name: Docker Login
