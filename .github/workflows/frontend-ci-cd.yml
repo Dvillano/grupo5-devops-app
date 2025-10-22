@@ -1,0 +1,61 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci-cd.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci-cd.yml'
+
+jobs:
+  build:
+    name: Build, Test & Deploy Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      # Clone repo
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+      # Configure Node V22
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    # Install frontend dependencies
+    - name: Install dependencies
+      working-directory: frontend
+      run: npm ci
+
+    # Run Linter
+    - name: Run linter
+      working-directory: frontend
+      run: npm run lint
+
+    # Run Tests
+    - name: Run tests
+      working-directory: frontend
+      run: npm test
+
+    # Login Docker Hub
+    - name: Docker Login
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USER }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # Build and Push Frontend Docker Image
+    - name: Build and Push Frontend Docker Image
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USER }}/grupo5-frontend:latest ./frontend
+        docker push ${{ secrets.DOCKERHUB_USER }}/grupo5-frontend:latest
+
+    # Deploy to Render
+    - name: Trigger Render Deploy
+      run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_API }}
