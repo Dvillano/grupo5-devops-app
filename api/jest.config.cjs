@@ -1,9 +1,10 @@
-import { resolve } from 'path';
+const { resolve } = require('path');
 
-export default {
+module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/tests"],
   testMatch: ["**/*.test.js"],
   verbose: true,
   transform: {},
-  setupFiles: [resolve('./setup-env.js')], }
+  setupFiles: [resolve('./setup-env.js')]
+}
