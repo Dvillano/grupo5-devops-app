@@ -41,6 +41,13 @@ jobs:
       working-directory: api
       run: npm run lint
 
+    # Run Tests
+    - name: Run tests
+      working-directory: api
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: npm test
+
     # Login Docker Hub
     - name: Docker Login
       uses: docker/login-action@v2

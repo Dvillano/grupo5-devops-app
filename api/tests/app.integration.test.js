@@ -2,12 +2,12 @@ import request from 'supertest';
 import app from '../src/app.js';
 import pool from '../src/db.js';
 
-beforeAll(async () => {
-  await pool.query('DELETE FROM app.tasks'); // limpiar tabla
+beforeEach(async () => {
+  await pool.query('BEGIN'); // Start transaction
 });
 
 afterEach(async () => {
-  await pool.query('DELETE FROM app.tasks');
+  await pool.query('ROLLBACK'); // Rollback changes made during the test
 });
 
 afterAll(async () => {
