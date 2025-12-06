@@ -1,13 +1,11 @@
 node_modules
+build
 npm-debug.log
 .DS_Store
 .git
 .gitignore
 .env
 .vscode
-dist
-coverage
-tests
 Dockerfile
 README.md
 *.md
