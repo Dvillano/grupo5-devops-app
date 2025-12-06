@@ -1,12 +1,14 @@
 # --------
-# Stage 1: Build
+# Stage 1: Dependencies
 # --------
-FROM node:22-alpine AS build
+FROM node:22-alpine AS deps
 WORKDIR /app
 
+# Copy dependencies
 COPY package*.json ./
 
-RUN npm install 
+# Install only prod dependencies
+RUN npm ci --only:production
 
 COPY . .
 # --------
