@@ -1,5 +1,5 @@
 # --------
-# Stage 1: Build
+# Stage 1: Dependencies
 # --------
 ARG NODE_VERSION=20
 FROM node:${NODE_VERSION}-alpine AS deps

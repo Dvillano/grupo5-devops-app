@@ -14,3 +14,8 @@ npm-debug.log
 .env
 .vscode
 dist
+coverage
+tests
+Dockerfile
+README.md
+*.md
