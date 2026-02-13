@@ -1,11 +1,8 @@
 node_modules
-build
 npm-debug.log
-.DS_Store
-.git
-.gitignore
 .env
-.vscode
-Dockerfile
-README.md
-*.md
+.DS_Store
+build
+.git
+logs
+*.log
