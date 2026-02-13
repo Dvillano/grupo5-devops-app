@@ -48,6 +48,19 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: npm test
 
+    # Set image tag (use Git tag if present, otherwise short SHA)
+    - name: Set image tag
+      id: set_tag
+      run: |
+        echo "Determining image tag..."
+        if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+          TAG="${GITHUB_REF#refs/tags/}"
+        else
+          TAG="sha-${GITHUB_SHA:0:8}"
+        fi
+        echo "TAG=$TAG" >> $GITHUB_ENV
+        echo "Image tag set to $TAG"
+
     # Login Docker Hub
     - name: Docker Login
       uses: docker/login-action@v2
@@ -57,10 +70,22 @@ jobs:
 
     # Build and Push Backend Docker Image
     - name: Build and Push Backend Docker Image
+      env:
+        DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+        TAG: ${{ env.TAG }}
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USER }}/grupo5-api:latest ./api
-        docker push ${{ secrets.DOCKERHUB_USER }}/grupo5-api:latest
+        echo "Building and pushing backend image: $DOCKERHUB_USER/grupo5-api:$TAG"
+        docker build -t $DOCKERHUB_USER/grupo5-api:$TAG ./api --build-arg APP_VERSION=$TAG
+        docker push $DOCKERHUB_USER/grupo5-api:$TAG
+
+    # ...frontend build removed from this workflow (moved to .github/workflows/frontend-ci-cd.yml)
 
     # Deploy to Render
     - name: Trigger Render Deploy
-      run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+      env:
+        DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+        TAG: ${{ env.TAG }}
+        RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+      run: |
+        echo "Notifying Render deploy webhook (sending image tag)..."
+        curl -X POST -H 'Content-Type: application/json' -d '{"backend": "'"${DOCKERHUB_USER}/grupo5-api:${TAG}"'"}' "$RENDER_HOOK"
