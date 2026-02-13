@@ -1,24 +1,30 @@
 # --------
 # Stage 1: Build
 # --------
-FROM node:22-alpine AS build
-WORKDIR /frontend
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-alpine AS build
+WORKDIR /app
 
+# Install deps and build
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci
 COPY . .
 RUN npm run build
 
-# --------
-# Stage 2: Run
-# --------
-FROM node:22-alpine
-WORKDIR /frontend
+# Runtime: use nginx for static files (smaller, production-ready)
+FROM nginx:alpine AS production
+ARG APP_VERSION=0.0.0
+LABEL org.opencontainers.image.version=$APP_VERSION
 
-COPY --from=build /frontend /frontend
-RUN npm install -g serve
+# Remove default nginx static content and copy build
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=build /app/build /usr/share/nginx/html
 
-# Servimos en el puerto 80 dentro del contenedor
+# Expose port 80
 EXPOSE 80
-CMD ["serve", "-s", "build", "-l", "80"]
+
+# Simple healthcheck (will be a no-op if wget/curl unavailable in some base images)
+# Keep lightweight: check index.html exists
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD ["/bin/sh", "-c", "[ -s /usr/share/nginx/html/index.html ] || exit 1"]
+
+CMD ["nginx", "-g", "daemon off;"]
